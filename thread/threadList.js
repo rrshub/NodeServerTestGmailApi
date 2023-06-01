@@ -1,6 +1,7 @@
 let request = require('request');
 let axios = require('axios')
 let db = require('./dbQueryThreadMsg')
+let fs = require('fs')
 
 module.exports = require('express').Router().post('/',(req,res) => 
 {
@@ -28,7 +29,19 @@ module.exports = require('express').Router().post('/',(req,res) =>
           }
         }).then(async(res1) => 
         {
-          console.log(res1.data.messages?.length)
+          let result = []
+          let msgJson = {}
+          console.log(res1.data)
+          msgJson['threadId'] = res1.data.id
+          msgJson['msg'] = filterData(res1.data.messages)
+          if(res1.data.messages.length == 5)
+          {
+            fs.writeFile("file.txt",JSON.stringify(msgJson) + ',',(res=>{
+              console.log("done")
+            }))
+          }
+          
+
 //console.log("res")
             let flag = false
             // await res1.data.messages?.forEach((msg) => {
@@ -111,3 +124,32 @@ module.exports = require('express').Router().post('/',(req,res) =>
     }
   })
 })
+
+function filterData(msg)
+{
+  let msg1 = []
+  let dataJson = {}
+  msg.forEach(m => {
+    dataJson['msgId'] = m.id
+    dataJson['snippt']=m.snippet
+    dataJson['labelIds'] = m.labelIds
+    m.payload.headers.forEach(payload => {
+      if (
+        payload.name == "Date" ||
+        payload.name == "From" ||
+        payload.name == "To"   ||
+        payload.name == "Subject"||
+        payload.name.toUpperCase() == 'MESSAGE-ID'
+      ) {
+        if(payload.name.toUpperCase() == 'MESSAGE-ID'){
+          dataJson['MsgId']=payload.value
+        }
+        else{
+          dataJson[payload.name]=payload.value
+        }
+      }
+    })
+    msg1.push(dataJson)
+  })
+  return msg1
+}
