@@ -27,19 +27,47 @@ module.exports = require('express').Router().post('/',(req,res) =>
             Authorization: `Bearer ${req.body.access_token}`,
             "format" : "RAW"
           }
-        }).then(async(res1) => 
+        }).then((res1) => 
         {
           let result = []
           let msgJson = {}
-          console.log(res1.data)
           msgJson['threadId'] = res1.data.id
           msgJson['msg'] = filterData(res1.data.messages)
-          if(res1.data.messages.length == 5)
-          {
-            fs.writeFile("file.txt",JSON.stringify(msgJson) + ',',(res=>{
-              console.log("done")
-            }))
-          }
+          msgJson.msg.forEach(m => {
+            axios.get(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.msgId}?format=raw`,
+            {
+              headers: 
+              {
+                Authorization: `Bearer ${req.body.access_token}`,
+                "format" : "RAW"
+              }
+            }).then((res2) => 
+            {
+
+              if(res2){
+                // res2.data.forEach((ele)=>{
+                //   let indx = ele.html.indexOf("gmail_quote");
+                //   if(indx != -1){
+                //     ele['trimHtml']=ele.html.substring(0, indx)
+                //   }
+                //   else{
+                //     console.log(ele.html)
+                //     ele['trimHtml']=ele.html
+                //   }
+                //   m['getMsg'] = ele
+                // })
+                
+                if(res1.data.messages.length == 5)
+              {
+                //console.log(res2)
+                fs.writeFile("file.txt",JSON.stringify(msgJson) + ',',(res=>{
+                  console.log("done")
+                }))
+              }
+              }
+            })
+          })
+          
           
 
 //console.log("res")
@@ -128,11 +156,12 @@ module.exports = require('express').Router().post('/',(req,res) =>
 function filterData(msg)
 {
   let msg1 = []
-  let dataJson = {}
   msg.forEach(m => {
+    let dataJson = {}
     dataJson['msgId'] = m.id
     dataJson['snippt']=m.snippet
     dataJson['labelIds'] = m.labelIds
+    dataJson['conversationType'] = m.labelIds.includes('INBOX') ? 'RECEIVE' : 'SENT'
     m.payload.headers.forEach(payload => {
       if (
         payload.name == "Date" ||
@@ -149,7 +178,142 @@ function filterData(msg)
         }
       }
     })
+    
+    dataJson['name']=dataJson.From.split(" <")[0]
     msg1.push(dataJson)
   })
   return msg1
 }
+
+// function calculateDate() {
+// let todayDate = new Date() 
+//    let yesterDate = new Date()
+//   const todaysDayOfMonth = todayDate.getDate();
+//   yesterDate.setDate(todaysDayOfMonth - 1);
+//   let lastDay = new Date(todayDate.getTime() - (7 * 24 * 60 * 60 * 1000));
+//   getName()
+// }
+
+// function getName(){
+// //   let todayDate = new Date() 
+// //   let yesterDate = new Date()
+// //  const todaysDayOfMonth = todayDate.getDate();
+// //  yesterDate.setDate(todaysDayOfMonth - 1);
+// //  let lastDay = new Date(todayDate.getTime() - (7 * 24 * 60 * 60 * 1000));
+
+//   this.arr.forEach((ele,i)=>{
+//     let minDate;
+//     ele.allmsg.forEach((e,j)=>{
+//     //console.log(e)
+
+//       // e['name']=e.From.split(" <")[0]
+//       //  e['Days']=(new Date(e.Date).toDateString() == this.todayDate.toDateString())?'TODAY':(new Date(e.Date).toDateString() == this.yesterDate.toDateString())?'YESTERDAY':'LAST'
+        
+//     })
+//     minDate = new Date(
+//       Math.max(
+//         ...ele.allmsg.map((element) => {
+//           return new Date(element.Date);
+//         }),
+//       ),
+//     );
+//     ele['Date']=minDate
+//     ele['Days']=(new Date(ele.Date).toDateString() == this.todayDate.toDateString())?'TODAY':(new Date(ele.Date).toDateString() == this.yesterDate.toDateString())?'YESTERDAY':'LAST'
+//     ele.allmsg.sort((a,b) => new Date(b.Date)- new Date(a.Date))
+//   //console.log("***********name ",minDate.toDateString())
+
+//     // this.arr[i]['name']=this.arr[i]?.From.split(" <")[0]
+//     // this.arr[i]['Days']=(new Date(this.arr[i].Date).toDateString() == this.todayDate.toDateString())?'TODAY':(new Date(this.arr[i].Date).toDateString() == this.yesterDate.toDateString())?'YESTERDAY':'LAST'
+//   })
+
+//  this.arr.forEach((ele,i)=>{
+//   ele['name']=[]
+//   ele.allmsg.forEach((e,j)=>{
+//     // console.log(e.name)
+//     ele['name'].push(e.name)
+//     let name = e.name.split("")
+//     e['picture'] =   name.shift().charAt(0) 
+//     e['bgColor'] = this.random_bg_color()
+//     // name.length > 0 ?
+//     // + name.pop().charAt(0):name.shift().charAt(0)
+//     console.log("**",j,e.name,e['picture'])
+//     //console.log((new Date(e.Date).getTime() == ele.Date.getTime()),new Date(e.Date), ele.Date)
+//   if(new Date(e.Date).getTime() == ele.Date.getTime()){
+//    // console.log(e.Date)
+//     ele['msg'] = e.msg
+//     ele['Subject'] = e.Subject.replace("Re:",'').trim()
+//   }  
+//   })
+//   ele['picture'] = this.getInitials(ele.name.toString())
+// })
+
+// //Check and assign label
+// this.arr.forEach((ele,i)=>{
+
+//   ele.allmsg.forEach((e,j)=>{
+//     // delete e.labelIds
+
+//     const index = e.labelIds.indexOf('INBOX')
+//     if(index>-1){
+//       delete e.labelIds
+//       e['labelIds']=['INBOX']
+//     }
+      
+
+//        })
+//     })
+// }
+
+// function getInitials(nameString){
+//  const fullName = nameString.split(',');
+
+//   let initials
+//   if(fullName.length>1){
+  
+//     initials = fullName.shift().charAt(0)
+//     for(let i=1;i<=fullName.length;i++){
+   
+//       initials += fullName.shift().charAt(0) //+ fullName.pop().charAt(0);
+//       if(i==fullName.length){
+//         initials += fullName.pop().charAt(0);
+//       }
+//     }
+//   }
+//   else{
+//     initials = fullName.shift().charAt(0)
+//   }
+// return initials.toUpperCase();
+// }
+
+// function change(mail){
+//   let params = localStorage.getItem('authInfo')
+//   params = JSON.parse(params)
+//   console.log(JSON.stringify(params))
+//   this.inboxService.getMsg({'ACCESS_TOKEN':params,
+//         obj:mail.allmsg}).subscribe(res1=>{
+//           if(res1){
+//             res1.forEach((ele)=>{
+//               let indx = ele.html.indexOf("gmail_quote");
+//               if(indx != -1){
+//                 ele['trimHtml']=ele.html.substring(0, indx)
+//               }
+//               else{
+//                 console.log(ele.html)
+//                 ele['trimHtml']=ele.html
+//               }
+//             })
+//             mail.allmsg.forEach((element)=>{
+//               res1.forEach((ele)=>{
+               
+
+//                 if(ele.messageId==element.MsgId){
+//                   element['getMsg'] = ele
+//                 }
+//               })
+//             })
+//             this.inboxService.ChatObject.next(mail)
+//             console.log("Send from day status",mail)
+//           }
+         
+//           })
+// }
